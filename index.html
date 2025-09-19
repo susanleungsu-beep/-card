@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Gift 6 — Mobile Fix v2</title>
+  <title>Gift 6 — Simple 2x3</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <style>
@@ -15,48 +15,39 @@
     *{box-sizing:border-box}
     html,body{height:100%}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:var(--fg)}
-    header{padding:10px;text-align:center;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06);position:sticky;top:0;z-index:5}
-    h1{margin:0;font-size:19px}
-    p.sub{margin:2px 0 0;color:var(--muted);font-size:12.5px;line-height:1.35}
-    .wrap{max-width:720px;margin:10px auto;padding:0 10px}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-    .card{aspect-ratio:1/1;background:var(--card);border-radius:12px;position:relative;overflow:hidden;cursor:pointer;
+    header{padding:12px;text-align:center;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06);position:sticky;top:0;z-index:5}
+    h1{margin:0;font-size:20px}
+    p.sub{margin:4px 0 0;color:var(--muted);font-size:13px;line-height:1.3}
+    .wrap{max-width:720px;margin:12px auto;padding:0 12px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .card{aspect-ratio:1/1;background:var(--card);border-radius:14px;position:relative;overflow:hidden;cursor:pointer;
           box-shadow:0 6px 18px rgba(0,0,0,0.08);transition:transform .12s ease}
     .card:active{transform:scale(.995)}
     .lid{position:absolute;inset:0;background:linear-gradient(135deg,#9aa7ff,#c5d0ff);display:flex;align-items:center;justify-content:center;
-         color:#fff;font-weight:800;font-size:17px;letter-spacing:.2px;z-index:2;transition:opacity .2s ease;padding:6px;text-align:center}
-    .gift{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-          text-align:center;padding:8px;opacity:0;z-index:1;transition:opacity .2s ease;
-          overflow:auto; -webkit-overflow-scrolling:touch; word-break:break-word}
-    .gift-title{font-size:15px;font-weight:800;line-height:1.25}
-    .gift-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:2px}
-    .btn{border:0;border-radius:9px;padding:7px 10px;font-weight:700;cursor:pointer;font-size:13px}
-    .btn.primary{background:var(--primary);color:#fff}
-    .btn.secondary{background:var(--secondary);color:var(--fg)}
-    .badge{position:absolute;top:6px;right:6px;background:#111;color:#fff;font-size:11px;font-weight:800;padding:4px 6px;border-radius:999px;
-           opacity:0;z-index:6; line-height:1.2; max-width:80%; text-align:right; word-break:break-word}
+         color:#fff;font-weight:800;font-size:18px;letter-spacing:.2px;z-index:2;transition:opacity .2s ease;padding:6px;text-align:center}
+    .gift{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+          text-align:center;padding:10px;opacity:0;z-index:1;transition:opacity .2s ease;
+          overflow:hidden; word-break:break-word}
+    .gift-name{font-size:18px;font-weight:900;line-height:1.2;max-width:92%}
+    .gift-note{font-size:11px;color:#444;opacity:.95;line-height:1.2;max-width:92%}
     .overlay{position:absolute;inset:0;background:rgba(255,255,255,.55);display:none;z-index:3; pointer-events:none}
     .card.open .lid{opacity:0}
     .card.open .gift{opacity:1}
-    .card.claimed .overlay{display:block}
+    .card.locked .overlay{display:block}
     .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:8px 0}
-    footer{max-width:720px;margin:12px auto 20px;padding:0 10px;color:var(--muted);font-size:12px;text-align:center}
+    footer{max-width:720px;margin:14px auto 24px;padding:0 12px;color:var(--muted);font-size:12px;text-align:center}
     @media (max-width:390px){
-      h1{font-size:17px}
-      .lid{font-size:15px}
-      .gift-title{font-size:13.5px}
-      .btn{font-size:12.5px;padding:6px 9px}
+      h1{font-size:18px}
+      .lid{font-size:16px}
+      .gift-name{font-size:16px}
+      .gift-note{font-size:10.5px}
     }
   </style>
 </head>
 <body>
   <header>
     <h1>6 Mystery Boxes</h1>
-    <p class="sub">Mỗi box nhận <b>1 lần</b>. Sau khi bấm “Nhận quà”, box sẽ khóa và gắn nhãn.</p>
-    <div class="controls">
-      <button id="resetBtn" class="btn secondary">Reset</button>
-      <button id="shuffleBtn" class="btn secondary">Xáo trộn quà</button>
-    </div>
+    <p class="sub">Bấm 1 ô để mở. Sau khi mở, ô sẽ khóa lại. (Trên: tên quà, dưới: nhãn nhỏ)</p>
   </header>
 
   <div class="wrap">
@@ -67,7 +58,8 @@
 
 <script>
 (() => {
-  let gifts = [
+  // Danh sách quà
+  const gifts = [
     "Wakuku",
     "koi cafe x 2",
     "cinema ticket",
@@ -75,10 +67,11 @@
     "starbuck x 1",
     "massage 60mins"
   ];
+  const note = '快递\"圆\"收到订单咯,在购买中';
 
   const grid = document.getElementById('grid');
-  let claimed = new Array(gifts.length).fill(false);
-  let opened  = new Array(gifts.length).fill(false);
+  let opened = new Array(gifts.length).fill(false);
+  let locked = new Array(gifts.length).fill(false);
 
   function render(){
     grid.innerHTML = "";
@@ -93,98 +86,46 @@
 
       const gift = document.createElement('div');
       gift.className = 'gift';
+      
+      const name = document.createElement('div');
+      name.className = 'gift-name';
+      name.textContent = gifts[i];
 
-      const title = document.createElement('div');
-      title.className = 'gift-title';
-      title.textContent = gifts[i];
+      const noteEl = document.createElement('div');
+      noteEl.className = 'gift-note';
+      noteEl.textContent = note;
 
-      const actions = document.createElement('div');
-      actions.className = 'gift-actions';
-
-      const claimBtn = document.createElement('button');
-      claimBtn.className = 'btn primary';
-      claimBtn.textContent = 'Nhận quà';
-
-      const closeBtn = document.createElement('button');
-      closeBtn.className = 'btn secondary';
-      closeBtn.textContent = 'Đóng';
-
-      actions.appendChild(claimBtn);
-      actions.appendChild(closeBtn);
-      gift.appendChild(title);
-      gift.appendChild(actions);
-
-      const badge = document.createElement('div');
-      badge.className = 'badge';
-      badge.textContent = '快递\"圆\"收到订单咯,在购买中';
+      gift.appendChild(name);
+      gift.appendChild(noteEl);
 
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
 
       card.appendChild(lid);
       card.appendChild(gift);
-      card.appendChild(badge);
       card.appendChild(overlay);
 
-      if (opened[i])  card.classList.add('open');
-      if (claimed[i]) {
-        card.classList.add('claimed');
-        // ensure badge visible even if state restored
-        badge.style.opacity = '1';
-        claimBtn.disabled = true;
+      // Restore state
+      if (opened[i]) card.classList.add('open');
+      if (locked[i]) {
+        card.classList.add('locked');
         card.style.pointerEvents = 'none';
       }
 
+      // Click behavior
       card.addEventListener('click', () => {
-        if (claimed[i]) return;
+        if (locked[i]) return;
         card.classList.add('open');
         opened[i] = true;
-      });
-
-      gift.addEventListener('click', (e) => e.stopPropagation());
-
-      claimBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (claimed[i]) return;
-        claimed[i] = true;
-        card.classList.add('claimed');
-        claimBtn.disabled = true;
-        // Explicitly reveal badge (iOS Safari safe)
-        badge.style.opacity = '1';
-        // Block further interactions on the card
+        // Lock immediately after open (open once rule)
+        card.classList.add('locked');
+        locked[i] = true;
         card.style.pointerEvents = 'none';
-      });
-
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (claimed[i]) return;
-        opened[i] = false;
-        card.classList.remove('open');
       });
 
       grid.appendChild(card);
     }
   }
-
-  function resetAll(){
-    claimed = new Array(gifts.length).fill(false);
-    opened  = new Array(gifts.length).fill(false);
-    render();
-  }
-
-  function shuffle(arr){
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }
-
-  document.getElementById('resetBtn').addEventListener('click', resetAll);
-  document.getElementById('shuffleBtn').addEventListener('click', () => {
-    gifts = shuffle(gifts.slice());
-    resetAll();
-  });
 
   document.addEventListener('DOMContentLoaded', render, { once:true });
   if (document.readyState === 'interactive' || document.readyState === 'complete') render();
