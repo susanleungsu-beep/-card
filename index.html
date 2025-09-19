@@ -1,0 +1,193 @@
+
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gift 6 — 2x3 Mystery Boxes</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <style>
+    :root {
+      --bg:#f6f7fb; --fg:#111; --muted:#666;
+      --card:#fff; --primary:#111; --secondary:#e9ecf5;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:var(--bg);color:var(--fg)}
+    header{padding:16px;text-align:center;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06);position:sticky;top:0;z-index:5}
+    h1{margin:4px 0 2px;font-size:22px}
+    p.sub{margin:0;color:var(--muted);font-size:14px}
+    .wrap{max-width:720px;margin:18px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .card{aspect-ratio:1/1;background:var(--card);border-radius:16px;position:relative;overflow:hidden;cursor:pointer;
+          box-shadow:0 6px 18px rgba(0,0,0,0.08);transition:transform .12s ease}
+    .card:active{transform:scale(.995)}
+    .lid{position:absolute;inset:0;background:linear-gradient(135deg,#9aa7ff,#c5d0ff);display:flex;align-items:center;justify-content:center;
+         color:#fff;font-weight:800;font-size:22px;letter-spacing:.4px;z-index:2;transition:opacity .25s ease}
+    .gift{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+          text-align:center;padding:14px;opacity:0;z-index:1;transition:opacity .25s ease}
+    .gift-title{font-size:18px;font-weight:800;line-height:1.25}
+    .gift-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+    .btn{border:0;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--primary);color:#fff}
+    .btn.secondary{background:var(--secondary);color:var(--fg)}
+    .badge{position:absolute;top:8px;right:8px;background:#111;color:#fff;font-size:11px;font-weight:800;padding:5px 8px;border-radius:999px;opacity:0;z-index:3}
+    .overlay{position:absolute;inset:0;background:rgba(255,255,255,.6);display:none;z-index:4}
+    .card.open .lid{opacity:0}
+    .card.open .gift{opacity:1}
+    .card.claimed .badge{opacity:1}
+    .card.claimed .overlay{display:block}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:10px 0}
+    footer{max-width:720px;margin:20px auto 36px;padding:0 16px;color:var(--muted);font-size:12px;text-align:center}
+    @media (max-width:480px){
+      .gift-title{font-size:16px}
+      .lid{font-size:20px}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>6 Mystery Boxes</h1>
+    <p class="sub">Mỗi box nhận <b>1 lần</b>. Sau khi bấm “Nhận quà”, box sẽ khóa và gắn nhãn.</p>
+    <div class="controls">
+      <button id="resetBtn" class="btn secondary">Reset</button>
+      <button id="shuffleBtn" class="btn secondary">Xáo trộn quà</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <footer>Offline • Mở tốt bằng Safari/Chrome • Không cần đăng nhập</footer>
+
+<script>
+(() => {
+  // ===== DỮ LIỆU QUÀ =====
+  let gifts = [
+    "Wakuku",
+    "koi cafe x 2",
+    "cinema ticket",
+    "cat tail",
+    "starbuck x 1",
+    "massage 60mins"
+  ];
+
+  const grid = document.getElementById('grid');
+  let claimed = new Array(gifts.length).fill(false);
+  let opened  = new Array(gifts.length).fill(false);
+
+  function render(){
+    grid.innerHTML = "";
+    for (let i=0;i<gifts.length;i++){
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.dataset.index = i;
+
+      // Lid
+      const lid = document.createElement('div');
+      lid.className = 'lid';
+      lid.textContent = '🎁 Box ' + (i+1);
+
+      // Gift body
+      const gift = document.createElement('div');
+      gift.className = 'gift';
+
+      const title = document.createElement('div');
+      title.className = 'gift-title';
+      title.textContent = gifts[i];
+
+      const actions = document.createElement('div');
+      actions.className = 'gift-actions';
+
+      const claimBtn = document.createElement('button');
+      claimBtn.className = 'btn primary';
+      claimBtn.textContent = 'Nhận quà';
+
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'btn secondary';
+      closeBtn.textContent = 'Đóng';
+
+      actions.appendChild(claimBtn);
+      actions.appendChild(closeBtn);
+      gift.appendChild(title);
+      gift.appendChild(actions);
+
+      // Badge + overlay
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = '快递"圆"收到订单咯,在购买中';
+
+      const overlay = document.createElement('div');
+      overlay.className = 'overlay';
+
+      // Build
+      card.appendChild(lid);
+      card.appendChild(gift);
+      card.appendChild(badge);
+      card.appendChild(overlay);
+
+      // Restore state
+      if (opened[i])  card.classList.add('open');
+      if (claimed[i]) {
+        card.classList.add('claimed');
+        claimBtn.disabled = true;
+        card.style.pointerEvents = 'none';
+      }
+
+      // Events
+      card.addEventListener('click', () => {
+        if (claimed[i]) return;
+        card.classList.add('open');
+        opened[i] = true;
+      });
+
+      gift.addEventListener('click', (e) => e.stopPropagation());
+
+      claimBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (claimed[i]) return;
+        claimed[i] = true;
+        card.classList.add('claimed');
+        claimBtn.disabled = true;
+        card.style.pointerEvents = 'none';
+      });
+
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (claimed[i]) return;
+        opened[i] = false;
+        card.classList.remove('open');
+      });
+
+      grid.appendChild(card);
+    }
+  }
+
+  function resetAll(){
+    claimed = new Array(gifts.length).fill(false);
+    opened  = new Array(gifts.length).fill(false);
+    render();
+  }
+
+  function shuffle(arr){
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  document.getElementById('resetBtn').addEventListener('click', resetAll);
+  document.getElementById('shuffleBtn').addEventListener('click', () => {
+    gifts = shuffle(gifts.slice());
+    resetAll();
+  });
+
+  document.addEventListener('DOMContentLoaded', render, { once:true });
+  if (document.readyState === 'interactive' || document.readyState === 'complete') render();
+})();
+</script>
+</body>
+</html>
